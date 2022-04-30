@@ -1,37 +1,60 @@
+var rotorCiphers = ['JGDQOXUSCAMIFRVTPNEWKBLZYH', 'NTZPSFBOKMWRCJDIVLAEYUXHGQ',
+  'JVIUBHTCDYAKEQZPOSGXNRMWFL','QYHOGNECVPUZTFDJAXWMKISRBL', 'QWERTZUIOASDFGHJKPYXCVBNML'];
+var reflectorCiphers = ['EJMZALYXVBWFCRQUONTSPIKHGD','YRUHQSLDPXNGOKMIEBFZCWVJAT',
+    'FVPJIAOYEDRZXWGCTKUQSBNMHL'];
+
 function setup() {
-  createCanvas(1000,500)
+  createCanvas(470,470)
   background(51)
-  var keyboard = new Keyboard(100,100,'original');
-  keyboard.draw()
+  var keyboard = new Keyboard(100,150,'original');
+  keyboard.draw();
+
+  console.log(reverseCipher(reflectorCiphers[0]));
+  let plugboard = new Plugboard(reflectorCiphers[0]);
+  let rotor1 = new Rotor(rotorCiphers[1],0);
+  
+  console.log(plugboard.swap(1));
+  console.log(rotor1.fwd(0),rotor1.bwd(0));
 }
   
 function draw() {
   // put drawing code here
 }
 
+function letter2num(letter) {
+  return parseInt(letter,36) - 10;
+}
+
+function reverseCipher(cipher) {
+  let letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let cipherR = new Array(26);
+  for (let k = 0; k < 26; k++) {
+    cipherR[letter2num(cipher[k])] = letters[k];
+  }
+  return cipherR.reduce( (x,y) => x + y );
+}
+
 class Key {
-  constructor(idx,layout) {
+  constructor(idx,layout,r=15) {
+    let letters; let keysPerRow;
     if (layout == 'original') {
-      var letters = 'QWERTZUIOASDFGHJKPYZXCVBNML'
-      var keysPerRow = [9, 8, 9];
+      letters = 'QWERTZUIOASDFGHJKPYZXCVBNML'
+      keysPerRow = [9, 8, 9];
     }
     else {
-      var letters = 'QWERTYUIOPASDFGHJKLZXCVBNM'
-      var keysPerRow = [10, 9, 7];
+      letters = 'QWERTYUIOPASDFGHJKLZXCVBNM'
+      keysPerRow = [10, 9, 7];
     }
-    
     this.label = letters[idx]
-    this.r = 15;
-    var row; var col;
-    if (idx < keysPerRow[0]) {
+    this.r = r;
+    let row; let col;
+    if (idx < keysPerRow[0]) { 
       row = 0;
       col = idx;
-    }
-    else if ( idx < keysPerRow[0] + keysPerRow[1]) {
+    } else if ( idx < keysPerRow[0] + keysPerRow[1]) {
       row = 1;
       col = idx - keysPerRow[0];
-    }
-    else {
+    } else {
       row = 2;
       col = idx - ( keysPerRow[0] + keysPerRow[1] );
     }
@@ -56,12 +79,12 @@ class Keyboard {
     this.xpos = x0;
     this.ypos = y0;
     this.key = new Array(26);
-    for (var k=0; k<26; k++) {
+    for (let k=0; k<26; k++) {
       this.key[k] = new Key(k, layout);
     }
   }
   draw() {
-    for (var k=0; k<26; k++) {
+    for (let k=0; k<26; k++) {
       this.key[k].draw(this.xpos,this.ypos);
     }
   }
@@ -69,14 +92,15 @@ class Keyboard {
 
 class Rotor {
   constructor(cipher,notchPos) {
-    this.cipher = cipher;
+    this.cipherFwd = cipher;
     this.notch = notchPos;
+    this.cipherBwd = reverseCipher(cipher);
   }
-  fwd(letter) {
-    // forward permutation
+  fwd(n) { // forward permutation
+    return letter2num(this.cipherFwd[n]);
   }
-  bwd(letter){
-    // backward permutation
+  bwd(n) { // backward permutation
+    return letter2num(this.cipherBwd[n]);
   }
 }
 
@@ -92,10 +116,13 @@ class RotorArray {
 }
 
 class Plugboard {
-  constructor(connectedPairs) {
-    this.pairs = connectedPairs;
+  constructor(cipher) {
+    this.cipher = cipher;
+    if ( cipher != reverseCipher(cipher) ) {
+      console.warn('A non-symmetric cipher was provided for the plugboard')
+    }
   }
-  swap(letter) {
-    // swap letter if it's in the connected pairs
+  swap(n) { // swap letters if they are connected
+    return letter2num(this.cipher[n]);
   }
 }
