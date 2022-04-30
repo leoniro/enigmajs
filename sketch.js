@@ -1,5 +1,6 @@
-var rotorCiphers = ['JGDQOXUSCAMIFRVTPNEWKBLZYH', 'NTZPSFBOKMWRCJDIVLAEYUXHGQ',
-  'JVIUBHTCDYAKEQZPOSGXNRMWFL','QYHOGNECVPUZTFDJAXWMKISRBL', 'QWERTZUIOASDFGHJKPYXCVBNML'];
+var rotorCiphers = ['EKMFLGDQVZNTOWYHXUSPAIBRCJ', 'AJDKSIRUXBLHWTMCQGZNPYFVOE',
+  'BDFHJLCPRTXVZNYEIWGAKMUSQO', 'ESOVPZJAYQUIRHXLNFTGKDCMWB', 'VZBRGITYUPSDNHLXAWMJQOFECK'];
+var rotorNotches = [17, 5, 22, 10, 0];
 var reflectorCiphers = ['EJMZALYXVBWFCRQUONTSPIKHGD','YRUHQSLDPXNGOKMIEBFZCWVJAT',
     'FVPJIAOYEDRZXWGCTKUQSBNMHL'];
 
@@ -11,18 +12,26 @@ function setup() {
 
   console.log(reverseCipher(reflectorCiphers[0]));
   let plugboard = new Plugboard(reflectorCiphers[0]);
-  let rotor1 = new Rotor(rotorCiphers[1],0);
-  
-  console.log(plugboard.swap(1));
-  console.log(rotor1.fwd(0),rotor1.bwd(0));
+  let rotor0 = new Rotor(rotorCiphers[0],rotorNotches[0]);
+  let rotor1 = new Rotor(rotorCiphers[1],rotorNotches[1]);
+  let rotor2 = new Rotor(rotorCiphers[2],rotorNotches[2]);
+  let reflector = new Rotor(reflectorCiphers[0],'');
+  let rotorList = [rotor1, rotor0, rotor2, reflector];
+  let rotorArray = new RotorArray(rotorList,[0, 0, 0]);
 }
   
 function draw() {
   // put drawing code here
+  noLoop();
 }
 
 function letter2num(letter) {
   return parseInt(letter,36) - 10;
+}
+
+function num2letter(n) {
+  letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return letters[n]
 }
 
 function reverseCipher(cipher) {
@@ -96,22 +105,29 @@ class Rotor {
     this.notch = notchPos;
     this.cipherBwd = reverseCipher(cipher);
   }
-  fwd(n) { // forward permutation
-    return letter2num(this.cipherFwd[n]);
+  fwd(n,state= 0 ) { // forward permutation
+    return letter2num(this.cipherFwd[(n+state) % 26]);
   }
-  bwd(n) { // backward permutation
-    return letter2num(this.cipherBwd[n]);
+  bwd(n, state = 0) { // backward permutation
+    return letter2num(this.cipherBwd[(n+state) % 26]);
   }
 }
 
 class RotorArray {
-  // A reflector is just a symmetric rotor, and should be the last (usually 4th) Rotor in the list
+  // The reflector works like a symmetric rotor, and should be the last (usually 4th) Rotor in the list
   constructor(listOfRotors, initialState) {
     this.rotors = listOfRotors;
     this.state = initialState;
   }
   click() {
-    // step rotors 1 position forward
+    // advance rotor state
+    console.log(this.state.map(num2letter))
+    let k = 0;
+    this.state[0] = (this.state[0] + 1) % 26;
+    while ( (this.state[k] == this.rotors[k].notch) && (k < this.state.length - 1) ) {
+      this.state[k+1] = (this.state[k+1] + 1) % 26
+      k++;
+    }
   }
 }
 
