@@ -10,19 +10,47 @@ function setup() {
   var keyboard = new Keyboard(100,150,'original');
   keyboard.draw();
 
-  console.log(reverseCipher(reflectorCiphers[0]));
   let plugboard = new Plugboard(reflectorCiphers[0]);
   let rotor0 = new Rotor(rotorCiphers[0],rotorNotches[0]);
   let rotor1 = new Rotor(rotorCiphers[1],rotorNotches[1]);
   let rotor2 = new Rotor(rotorCiphers[2],rotorNotches[2]);
-  let reflector = new Rotor(reflectorCiphers[0],'');
-  let rotorList = [rotor1, rotor0, rotor2, reflector];
+  let reflector = new Rotor(reflectorCiphers[1],'');
+  let rotorList = [rotor0, rotor1, rotor2, reflector];
   let rotorArray = new RotorArray(rotorList,[0, 0, 0]);
+
+  for (let k = 0; k<=10; k++) {
+    console.log(decode(k,plugboard,rotorArray));
+  }
 }
-  
+
 function draw() {
   // put drawing code here
   noLoop();
+}
+
+function decode(n,plugboard,rotorArray) {
+  // keystroke goes through plugboard
+  let out = plugboard.swap(n);
+
+  // then traverses the rotor array wiring
+  for (let k=0; k<rotorArray.state.length; k++) {
+    out = rotorArray.rotors[k].fwd(out,rotorArray.state[k]);
+  }
+
+  // bounces back through the reflector (bwd and fwd methods should give the same result)
+  out = rotorArray.rotors[rotorArray.state.length].fwd(out);
+
+  // traversers rotor array in reverse
+  for (let k = rotorArray.state.length - 1; k>=0; k--) {
+    out = rotorArray.rotors[k].bwd(out,rotorArray.state[k]);
+  }
+
+  // finally thorugh the plugboard again
+  out = plugboard.swap(out);
+
+  // advances rotor array state
+  rotorArray.click();
+  return out;
 }
 
 function letter2num(letter) {
@@ -101,16 +129,33 @@ class Keyboard {
 
 class Rotor {
   constructor(cipher,notchPos) {
-    this.cipherFwd = cipher;
+    this.cipher = cipher;
     this.notch = notchPos;
-    this.cipherBwd = reverseCipher(cipher);
   }
   fwd(n,state= 0 ) { // forward permutation
-    return letter2num(this.cipherFwd[(n+state) % 26]);
+    let cipher = rotateCipher(this.cipher,state);
+    return letter2num(cipher[n]);
   }
   bwd(n, state = 0) { // backward permutation
-    return letter2num(this.cipherBwd[(n+state) % 26]);
+    let cipher = rotateCipher(this.cipher,state)
+    cipher = reverseCipher(cipher);
+    return letter2num(cipher[n]);
   }
+}
+
+function rotateCipher(cipher,state) {
+  let wiring = new Array(52);
+  let out = [];
+  for (let k=0; k<26; k++) {
+    wiring[k] = (parseInt(cipher[k],36) - k + 26 - 10) % 26;
+    wiring[k+26] = wiring[k];
+    out.push(k);
+  }
+  
+  for (let k=0; k<26; k++) {
+    out[k] = (out[k] + wiring[state+k]) % 26;
+  }
+  return out.map(num2letter).reduce( (x,y) => x+y );
 }
 
 class RotorArray {
@@ -121,7 +166,6 @@ class RotorArray {
   }
   click() {
     // advance rotor state
-    console.log(this.state.map(num2letter))
     let k = 0;
     this.state[0] = (this.state[0] + 1) % 26;
     while ( (this.state[k] == this.rotors[k].notch) && (k < this.state.length - 1) ) {
